@@ -224,39 +224,39 @@ function sendSigningResult() {
 }
 
 function sendOK(sp) {
-	sp.write('ok', function(err) {
+	sp.write('ok' + line_default, function(err) {
 		if(err) {
 			console.log('error port: ' + sp + ' ' + err.message);
 			mainWindow.webContents.send('errorMsg', err.message);
 		} else {
-			console.log('sended ok to ' + sp);
-			infMsg += 'Sended ok to port.<br/>';
+			console.log('sent ok to ' + sp);
+			infMsg += 'Sent ok to port.<br/>';
 			showInfoData(infMsg);
 		}			
 	});
 }
 
 function sendUnsignedTxn(data) {
-	currentComPort.write('unsigned:' + data.unsigned_txn, function(err) {
+	currentComPort.write('unsigned:' + data.unsigned_txn + line_default, function(err) {
 		if(err) {
 			console.log('error port: ' + currentComPort);
 			mainWindow.webContents.send('errorMsg', err.message);
 		} else {
-			console.log('sended '+data.unsigned_txn + ' to ' + currentComPort);
-			infMsg += 'Sended unsigned_txn to port.<br/>';
+			console.log('sent '+data.unsigned_txn + ' to ' + currentComPort);
+			infMsg += 'Sent unsigned_txn to port.<br/>';
 			showInfoData(infMsg);
 		}			
 	});
 }
 
 function sendPin(data) {
-	currentComPort.write('pin:' + data.pin, function(err) {
+	currentComPort.write('pin:' + data.pin + line_default, function(err) {
 		if(err) {
 			console.log('error port: ' + currentComPort);
 			mainWindow.webContents.send('errorMsg', err.message);
 		} else {
-			console.log('sended '+data.pin + ' to ' + currentComPort);
-			infMsg += 'Sended pin to port.<br/>';
+			console.log('sent '+data.pin + ' to ' + currentComPort);
+			infMsg += 'Sent pin to port.<br/>';
 			showInfoData(infMsg);
 		}			
 	});
@@ -281,12 +281,12 @@ function searchPorts_mock() {
 }
 
 function sendUnsignedTxn_mock(data) {
-	console.log('sended '+data.unsigned_txn + ' to mock');
+	console.log('sent '+data.unsigned_txn + ' to mock');
 	sendWaitingPin();
 }
 
 function sendPin_mock(data) {
-	console.log('sended '+data.pin + ' to mock');
+	console.log('sent '+data.pin + ' to mock');
 	mainWindow.webContents.send('hidePin', '');
 	signed = '010000000110c5d3408e11dc7d1327f3f2e0e789cce8c578209ed';
 	sendSigningResult();
