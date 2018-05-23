@@ -18,6 +18,11 @@ const ws_url = 'wss://jagwallet-server.herokuapp.com'; // Prod
 const ws = new WebSocket(ws_url);
 const events = wsEvents(ws);
 
+setInterval(function(){ 
+   events.emit('ping',"");
+}, 10000);
+
+
 const line_default = '\n';
 
 // Module to control application life.
