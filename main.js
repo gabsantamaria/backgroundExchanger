@@ -9,8 +9,8 @@ var request = request.defaults({jar: true});
 const path = require('path');
 const url = require('url');
 
-const api_url = "https://jagwallet-server.herokuapp.com/"; // Prod
-const ws_url = 'wss://jagwallet-server.herokuapp.com'; // Prod
+const api_url = "https://jagwallet.io:8000/"; // Prod
+const ws_url = 'wss://jagwallet.io:8000'; // Prod
 
 //const api_url = "http://localhost:8000/"; // Dev
 //const ws_url = 'ws://localhost:8000'; // Dev
