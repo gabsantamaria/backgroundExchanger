@@ -114,9 +114,13 @@ app.on('activate', function () {
 			// Print out the response body
 			body = JSON.parse(body);
 			console.log(body);
-			session_token  = body.session_token;
-			searchPorts(); // Prod
-			//searchPorts_mock(); // Dev
+			if (body.error) {
+				mainWindow.webContents.send('errorMsg', body.error);
+			} else {
+				session_token  = body.session_token;
+				searchPorts(); // Prod
+				//searchPorts_mock(); // Dev
+			}			
 		} else {
 			mainWindow.webContents.send('errorMsg', 'An error ocurred: ' + body);
 		}
@@ -295,4 +299,5 @@ function sendPin_mock(data) {
 	mainWindow.webContents.send('hidePin', '');
 	signed = '010000000110c5d3408e11dc7d1327f3f2e0e789cce8c578209ed';
 	sendSigningResult();
-}*/
+}
+*/
