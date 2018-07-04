@@ -10,17 +10,13 @@ const path = require('path');
 const url = require('url');
 
 const api_url = "https://jagwallet.io:8000/"; // Prod
-const ws_url = 'wss://jagwallet.io:8000'; // Prod
-
 //const api_url = "http://localhost:8000/"; // Dev
-//const ws_url = 'ws://localhost:8000'; // Dev
 
-const ws = new WebSocket(ws_url);
-const events = wsEvents(ws);
+const ws_url = 'ws://localhost:8042';
 
-setInterval(function(){ 
-   events.emit('ping',"");
-}, 10000);
+const SocketServer = require('./server');
+let ws;
+let events;
 
 
 const line_default = '\n';
@@ -117,6 +113,8 @@ app.on('activate', function () {
 			if (body.error) {
 				mainWindow.webContents.send('errorMsg', body.error);
 			} else {
+				SocketServer.startServer();
+				createWsClient();
 				session_token  = body.session_token;
 				searchPorts(); // Prod
 				//searchPorts_mock(); // Dev
@@ -127,25 +125,29 @@ app.on('activate', function () {
 	});
 });
 
-events.on('send_unsigned', (data) => {
-	console.log(data);
-	if (data.message.logged.email == user) {
-		infMsg += 'Received unsigned_txn<br/>';
-		showInfoData(infMsg);
-		sendUnsignedTxn(data.message); // Prod
-		//sendUnsignedTxn_mock(data.message); // Dev
-	}
-}); 
-
-events.on('send_pin', function (data) {
-	if (data.message.logged.email == user) {
+function createWsClient() {
+	ws = new WebSocket(ws_url);
+	events = wsEvents(ws);
+	events.on('send_unsigned', (data) => {
 		console.log(data);
-		infMsg += 'Received pin<br/>';
-		showInfoData(infMsg);
-		sendPin(data.message); // Prod
-		//sendPin_mock(data.message); // Dev
-	}
-});
+		if (data.message.logged.email == user) {
+			infMsg += 'Received unsigned_txn<br/>';
+			showInfoData(infMsg);
+			sendUnsignedTxn(data.message); // Prod
+			//sendUnsignedTxn_mock(data.message); // Dev
+		}
+	}); 
+
+	events.on('send_pin', function (data) {
+		if (data.message.logged.email == user) {
+			console.log(data);
+			infMsg += 'Received pin<br/>';
+			showInfoData(infMsg);
+			sendPin(data.message); // Prod
+			//sendPin_mock(data.message); // Dev
+		}
+	});
+}
 
 function openPort(portName) {
 	var sp = new serialport(portName,{baudrate: 9600, autoOpen: false, parser: serialport.parsers.readline(line_default)});
@@ -279,22 +281,30 @@ function showInfoData(msg) {
 	mainWindow.webContents.send('renderPorts', infoData);
 }
 
+
+//Test code below this
 /*
+let sendwalletinterval;
+
 function searchPorts_mock() {
 	infMsg = '<br/>Waiting for Messages:<br/>';					
 	showInfoData(infMsg);		
 	xpub = 'xpub661MyMwAqRbcFgLUSaHosne9KH8Y4jURPkyTj89c5nHMdB8hgSDU856p4LXHe6YELhWxE9dF1thyKT4eX9Wev1hLfuTaPg1ukcBorzdseun';
 	wid = '10';
 	devid = 'naf7asfd4f9dg';
-	sendWalletConnected();
+	sendwalletinterval = setInterval(function() {
+		sendWalletConnected();
+	}, 10000); 
 }
 
 function sendUnsignedTxn_mock(data) {
+	clearInterval(sendwalletinterval);
 	console.log('sent '+data.unsigned_txn + ' to mock');
 	sendWaitingPin();
 }
 
 function sendPin_mock(data) {
+	clearInterval(sendwalletinterval);
 	console.log('sent '+data.pin + ' to mock');
 	mainWindow.webContents.send('hidePin', '');
 	signed = '010000000110c5d3408e11dc7d1327f3f2e0e789cce8c578209ed';
