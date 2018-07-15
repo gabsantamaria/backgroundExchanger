@@ -32,6 +32,7 @@ let mainWindow
 
 var infMsg = '';
 var currentComPort = null;
+var portNames = [];
 var user = '';
 var pwd = '';
 var xpub = '';
@@ -116,11 +117,15 @@ app.on('activate', function () {
 				SocketServer.startServer();
 				createWsClient();
 				session_token  = body.session_token;
-				searchPorts(); // Prod
+				infMsg = 'Waiting for Messages:<br/>';					
+				showInfoData(infMsg);
+				setInterval(function() {
+					searchPorts(); // Prod
+				}, 3000);				
 				//searchPorts_mock(); // Dev
 			}			
 		} else {
-			mainWindow.webContents.send('errorMsg', 'An error ocurred: ' + body);
+			mainWindow.webContents.send('errorMsg', 'An error ocurred, status code :' + response.statusCode + ', error: ' + body);
 		}
 	});
 });
@@ -154,8 +159,8 @@ function openPort(portName) {
 	sp.open(function (error) {
 		if (!error) { 
 			console.log('opened port: ' + portName);
-			infMsg += 'Opened port: ' + portName + '<br/>';
-			showInfoData(infMsg);
+			/*infMsg += 'Opened port: ' + portName + '<br/>';
+			showInfoData(infMsg);*/
 			sp.on('data', function(data) {
 				console.log('data received: ' + portName + ' ' + data);
 				if (currentComPort == null) {
@@ -202,12 +207,13 @@ function searchPorts() {
 		}
 		if (ports.length === 0) {
 			mainWindow.webContents.send('errorMsg', 'No ports discovered');
-		}
-		infMsg = '<br/>Waiting for Messages:<br/>';					
-		showInfoData(infMsg);
-					
+		}						
 		ports.forEach(function(port) {
-			openPort(port.comName);			 
+			if (!portNames.includes(port.comName)) {
+				console.log('opening ' + port.comName);
+				openPort(port.comName);			 
+				portNames.push(port.comName);
+			}			
 		});
 	});	
 }
