@@ -9,14 +9,15 @@ var request = request.defaults({jar: true});
 const path = require('path');
 const url = require('url');
 
-const api_url = "http://jagwallet.herokuapp.com/"; // Prod
-const ws_url = 'ws://jagwallet.herokuapp.com'; // Prod
-
+const api_url = "https://jagwallet.io:8000/"; // Prod
 //const api_url = "http://localhost:8000/"; // Dev
-//const ws_url = 'ws://localhost:8000'; // Dev
 
-const ws = new WebSocket(ws_url);
-const events = wsEvents(ws);
+const ws_url = 'ws://localhost:8042';
+
+const SocketServer = require('./server');
+let ws;
+let events;
+
 
 const line_default = '\n';
 
@@ -31,6 +32,7 @@ let mainWindow
 
 var infMsg = '';
 var currentComPort = null;
+var portNames = [];
 var user = '';
 var pwd = '';
 var xpub = '';
@@ -109,42 +111,56 @@ app.on('activate', function () {
 			// Print out the response body
 			body = JSON.parse(body);
 			console.log(body);
-			session_token  = body.session_token;
-			searchPorts(); // Prod
-			//searchPorts_mock(); // Dev
+			if (body.error) {
+				mainWindow.webContents.send('errorMsg', body.error);
+			} else {
+				SocketServer.startServer();
+				createWsClient();
+				session_token  = body.session_token;
+				infMsg = 'Waiting for Messages:<br/>';					
+				showInfoData(infMsg);
+				setInterval(function() {
+					searchPorts(); // Prod
+				}, 3000);				
+				//searchPorts_mock(); // Dev
+			}			
 		} else {
-			mainWindow.webContents.send('errorMsg', 'An error ocurred: ' + body);
+			mainWindow.webContents.send('errorMsg', 'An error ocurred, status code :' + response.statusCode + ', error: ' + body);
 		}
 	});
 });
 
-events.on('send_unsigned', (data) => {
-	console.log(data);
-	if (data.message.logged.email == user) {
-		infMsg += 'Received unsigned_txn<br/>';
-		showInfoData(infMsg);
-		sendUnsignedTxn(data.message); // Prod
-		//sendUnsignedTxn_mock(data.message); // Dev
-	}
-}); 
-
-events.on('send_pin', function (data) {
-	if (data.message.logged.email == user) {
+function createWsClient() {
+	ws = new WebSocket(ws_url);
+	events = wsEvents(ws);
+	events.on('send_unsigned', (data) => {
 		console.log(data);
-		infMsg += 'Received pin<br/>';
-		showInfoData(infMsg);
-		sendPin(data.message); // Prod
-		//sendPin_mock(data.message); // Dev
-	}
-});
+		if (data.message.logged.email == user) {
+			infMsg += 'Received unsigned_txn<br/>';
+			showInfoData(infMsg);
+			sendUnsignedTxn(data.message); // Prod
+			//sendUnsignedTxn_mock(data.message); // Dev
+		}
+	}); 
+
+	events.on('send_pin', function (data) {
+		if (data.message.logged.email == user) {
+			console.log(data);
+			infMsg += 'Received pin<br/>';
+			showInfoData(infMsg);
+			sendPin(data.message); // Prod
+			//sendPin_mock(data.message); // Dev
+		}
+	});
+}
 
 function openPort(portName) {
 	var sp = new serialport(portName,{baudrate: 9600, autoOpen: false, parser: serialport.parsers.readline(line_default)});
 	sp.open(function (error) {
 		if (!error) { 
 			console.log('opened port: ' + portName);
-			infMsg += 'Opened port: ' + portName + '<br/>';
-			showInfoData(infMsg);
+			/*infMsg += 'Opened port: ' + portName + '<br/>';
+			showInfoData(infMsg);*/
 			sp.on('data', function(data) {
 				console.log('data received: ' + portName + ' ' + data);
 				if (currentComPort == null) {
@@ -191,12 +207,13 @@ function searchPorts() {
 		}
 		if (ports.length === 0) {
 			mainWindow.webContents.send('errorMsg', 'No ports discovered');
-		}
-		infMsg = '<br/>Waiting for Messages:<br/>';					
-		showInfoData(infMsg);
-					
+		}						
 		ports.forEach(function(port) {
-			openPort(port.comName);			 
+			if (!portNames.includes(port.comName)) {
+				console.log('opening ' + port.comName);
+				openPort(port.comName);			 
+				portNames.push(port.comName);
+			}			
 		});
 	});	
 }
@@ -224,39 +241,39 @@ function sendSigningResult() {
 }
 
 function sendOK(sp) {
-	sp.write('ok', function(err) {
+	sp.write('ok' + line_default, function(err) {
 		if(err) {
 			console.log('error port: ' + sp + ' ' + err.message);
 			mainWindow.webContents.send('errorMsg', err.message);
 		} else {
-			console.log('sended ok to ' + sp);
-			infMsg += 'Sended ok to port.<br/>';
+			console.log('sent ok to ' + sp);
+			infMsg += 'Sent ok to port.<br/>';
 			showInfoData(infMsg);
 		}			
 	});
 }
 
 function sendUnsignedTxn(data) {
-	currentComPort.write('unsigned:' + data.unsigned_txn, function(err) {
+	currentComPort.write('unsigned:' + data.unsigned_txn + line_default, function(err) {
 		if(err) {
 			console.log('error port: ' + currentComPort);
 			mainWindow.webContents.send('errorMsg', err.message);
 		} else {
-			console.log('sended '+data.unsigned_txn + ' to ' + currentComPort);
-			infMsg += 'Sended unsigned_txn to port.<br/>';
+			console.log('sent '+data.unsigned_txn + ' to ' + currentComPort);
+			infMsg += 'Sent unsigned_txn to port.<br/>';
 			showInfoData(infMsg);
 		}			
 	});
 }
 
 function sendPin(data) {
-	currentComPort.write('pin:' + data.pin, function(err) {
+	currentComPort.write('pin:' + data.pin + line_default, function(err) {
 		if(err) {
 			console.log('error port: ' + currentComPort);
 			mainWindow.webContents.send('errorMsg', err.message);
 		} else {
-			console.log('sended '+data.pin + ' to ' + currentComPort);
-			infMsg += 'Sended pin to port.<br/>';
+			console.log('sent '+data.pin + ' to ' + currentComPort);
+			infMsg += 'Sent pin to port.<br/>';
 			showInfoData(infMsg);
 		}			
 	});
@@ -270,24 +287,33 @@ function showInfoData(msg) {
 	mainWindow.webContents.send('renderPorts', infoData);
 }
 
+
+//Test code below this
 /*
+let sendwalletinterval;
+
 function searchPorts_mock() {
 	infMsg = '<br/>Waiting for Messages:<br/>';					
 	showInfoData(infMsg);		
 	xpub = 'xpub661MyMwAqRbcFgLUSaHosne9KH8Y4jURPkyTj89c5nHMdB8hgSDU856p4LXHe6YELhWxE9dF1thyKT4eX9Wev1hLfuTaPg1ukcBorzdseun';
 	wid = '10';
 	devid = 'naf7asfd4f9dg';
-	sendWalletConnected();
+	sendwalletinterval = setInterval(function() {
+		sendWalletConnected();
+	}, 10000); 
 }
 
 function sendUnsignedTxn_mock(data) {
-	console.log('sended '+data.unsigned_txn + ' to mock');
+	clearInterval(sendwalletinterval);
+	console.log('sent '+data.unsigned_txn + ' to mock');
 	sendWaitingPin();
 }
 
 function sendPin_mock(data) {
-	console.log('sended '+data.pin + ' to mock');
+	clearInterval(sendwalletinterval);
+	console.log('sent '+data.pin + ' to mock');
 	mainWindow.webContents.send('hidePin', '');
 	signed = '010000000110c5d3408e11dc7d1327f3f2e0e789cce8c578209ed';
 	sendSigningResult();
-}*/
+}
+*/

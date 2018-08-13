@@ -20,9 +20,11 @@ ipcRenderer.on('renderPorts', (event, data) => {
 function renderPorts(data) {
 	str = '<div class="card">'+
 			'<div class="card-header">Logged as '+data.usr+'</div>'+
-			'<div class="card-body">'+
+			'<div id="card-body" class="card-body" style="max-height: 450px;overflow-y: scroll;">'+
 					data.info +
 			'</div>'+
 		  '</div>';
 	document.getElementById('ports').innerHTML = str;
+	var objDiv = document.getElementById("card-body");
+	objDiv.scrollTop = objDiv.scrollHeight;
 }

@@ -9,8 +9,8 @@
   <body>
   <div id="app">
 	<div class="container main-container">
-		<div class="row justify-content-center">
-			<div id="error"></div>
+		<div id="error"></div>
+		<div class="row justify-content-center">			
 			<div id="login" class="col-md-8">				
 				<div class="card">
 					<div class="card-header">Please enter user and password</div>
@@ -49,7 +49,7 @@
 
   <script>
     // You can also require other files to run in this process
-    require('./renderer.js');
+  require('./renderer.js');
 	const ipcRenderer = require('electron').ipcRenderer;
 
 	function sendLogin(event) {
